@@ -515,6 +515,13 @@ class OpenVisualizerWeb(eventBusClient.eventBusClient,Cmd):
             else:
                 self.stdout.write('  <none>')
             self.stdout.write('\n')
+        elif arg=='random':
+            try:
+                dagRoot = self.app.moteStates[0]
+                dagRoot.triggerAction(moteState.moteState.TRIGGER_DAGROOT)
+            except IndexError as err:
+                self.stdout.write(str(err))
+                self.stdout.write('\n')
         else:
             for ms in self.app.moteStates:
                 try:
