@@ -33,7 +33,7 @@ from   openvisualizer.moteConnector.SerialTester import SerialTester
 
 #============================ defines =========================================
 
-OPENTESTBED_BROKER_ADDRESS          = "argus.paris.inria.fr"
+OPENTESTBED_BROKER_ADDRESS          = "broker.mqttdashboard.com"
 
 BAUDRATE_LOCAL_BOARD  = 115200
 BAUDRATE_IOTLAB       = 500000
@@ -352,7 +352,20 @@ class moteProbe(threading.Thread):
                                         with self.outputBufLock:
                                             if self.outputBuf:
                                                 outputToWrite = self.outputBuf.pop(0)
-                                                self.serial.write(outputToWrite)
+
+                                                if self.mode == self.MODE_TESTBED:
+                                                    bytesOverMqtt = [ord(elem) for elem in outputToWrite]
+
+                                                    payload = {
+                                                        "serialbytes": bytesOverMqtt
+                                                    }
+
+                                                    self.mqttclient.publish (
+                                                        topic = 'opentestbed/deviceType/mote/deviceId/' + self.testbedmote_eui64 + '/cmd/tomoteserialbytes',
+                                                        payload = json.dumps(payload)
+                                                    )
+                                                else:
+                                                    self.serial.write(outputToWrite)
                                     else:
                                         # dispatch
                                         dispatcher.send(
