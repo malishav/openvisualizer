@@ -354,16 +354,7 @@ class moteProbe(threading.Thread):
                                                 outputToWrite = self.outputBuf.pop(0)
 
                                                 if self.mode == self.MODE_TESTBED:
-                                                    bytesOverMqtt = [ord(elem) for elem in outputToWrite]
-
-                                                    payload = {
-                                                        "serialbytes": bytesOverMqtt
-                                                    }
-
-                                                    self.mqttclient.publish (
-                                                        topic = 'opentestbed/deviceType/mote/deviceId/' + self.testbedmote_eui64 + '/cmd/tomoteserialbytes',
-                                                        payload = json.dumps(payload)
-                                                    )
+                                                    self._mqtt_send_bytes(outputToWrite)
                                                 else:
                                                     self.serial.write(outputToWrite)
                                     else:
@@ -407,13 +398,16 @@ class moteProbe(threading.Thread):
         # abort for IoT-LAB
         if self.mode==self.MODE_IOTLAB:
             return
-        
+
         # frame with HDLC
         hdlcData = self.hdlc.hdlcify(data)
-        
-        # add to outputBuf
-        with self.outputBufLock:
-            self.outputBuf += [hdlcData]
+
+        if self.mode==self.MODE_TESTBED:
+            self._mqtt_send_bytes(hdlcData)
+            return
+        else: # add to outputBuf
+            with self.outputBufLock:
+                self.outputBuf += [hdlcData]
             
     #==== mqtt callback functions
     
@@ -429,3 +423,20 @@ class moteProbe(threading.Thread):
             print "Error: failed to parse message payload {0}".format(message.payload)
         else:
             self.serialbytes_queue.put(json.loads(message.payload)['serialbytes'])
+
+    #==== mqtt helper
+
+    def _mqtt_send_bytes(self, data):
+
+        assert self.mode==self.MODE_TESTBED
+
+        bytesOverMqtt = [ord(elem) for elem in data]
+
+        payload = {
+            "serialbytes": bytesOverMqtt
+        }
+
+        self.mqttclient.publish(
+            topic='opentestbed/deviceType/mote/deviceId/' + self.testbedmote_eui64 + '/cmd/tomoteserialbytes',
+            payload=json.dumps(payload)
+        )
