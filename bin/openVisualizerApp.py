@@ -100,8 +100,8 @@ class OpenVisualizerApp(object):
         elif self.testbedmotes:
             motesfinder = moteProbe.OpentestbedMoteFinder()
             self.moteProbes       = [
-                moteProbe.moteProbe(testbedmote_eui64=p) for p in motesfinder.get_opentestbed_motelist()
-            ]
+                moteProbe.moteProbe(testbedmote=p) for p in motesfinder.get_opentestbed_motelist()
+                ]
             
         else:
             # in "hardware" mode, motes are connected to the serial port
