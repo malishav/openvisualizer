@@ -24,6 +24,7 @@ from openvisualizer.moteConnector   import moteConnector
 from openvisualizer.moteState       import moteState
 from openvisualizer.RPL             import RPL
 from openvisualizer.JRC             import JRC
+from openvisualizer.openBenchmarkAgent import openBenchmarkAgent
 from openvisualizer.openLbr         import openLbr
 from openvisualizer.openTun         import openTun
 from openvisualizer.RPL             import topology
@@ -38,7 +39,7 @@ class OpenVisualizerApp(object):
     top-level functionality for several UI clients.
     '''
     
-    def __init__(self,confdir,datadir,logdir,simulatorMode,numMotes,trace,debug,usePageZero,simTopology,iotlabmotes,testbed,mqttBroker,pathTopo):
+    def __init__(self,confdir,datadir,logdir,simulatorMode,numMotes,trace,debug,usePageZero,simTopology,iotlabmotes,testbed,benchmark,mqttBroker,pathTopo):
         
         # store params
         self.confdir              = confdir
@@ -51,6 +52,7 @@ class OpenVisualizerApp(object):
         self.usePageZero          = usePageZero
         self.iotlabmotes          = iotlabmotes
         self.testbed              = testbed
+        self.benchmark            = benchmark
         self.mqttBroker           = mqttBroker
         self.pathTopo             = pathTopo
 
@@ -60,6 +62,7 @@ class OpenVisualizerApp(object):
         self.rpl                  = RPL.RPL()
         self.jrc                  = JRC.JRC()
         self.topology             = topology.topology()
+        self.openBenchmarkAgent   = None
         self.DAGrootList          = []
         # create openTun call last since indicates prefix
         self.openTun              = openTun.create() 
@@ -183,6 +186,16 @@ class OpenVisualizerApp(object):
                     prefix += "0"
                 moteid = prefix+hexaDAGroot
                 self.DAGrootList.append(moteid)
+
+        # If cloud-based benchmarking service is requested, start the agent
+        if self.benchmark:
+            self.openBenchmarkAgent = openBenchmarkAgent.OpenBenchmarkAgent(
+                mqttBroker=self.mqttBroker,
+                firmware='openwsn',
+                testbed=self.testEnvironment,
+                nodes=[],
+                scenario=self.benchmark
+            )
         
         # start tracing threads
         if self.trace:
@@ -346,6 +359,7 @@ def main(parser=None):
                            'trace          = {0}'.format(argspace.trace),
                            'debug          = {0}'.format(argspace.debug),
                            'testbed        = {0}'.format(argspace.testbed),
+                           'benchmark      = {0}'.format(argspace.benchmark),
                            'usePageZero    = {0}'.format(argspace.usePageZero)],
             )))
     log.info('Using external dirs:\n\t{0}'.format(
@@ -367,6 +381,7 @@ def main(parser=None):
         simTopology     = argspace.simTopology,
         iotlabmotes     = argspace.iotlabmotes,
         testbed         = argspace.testbed,
+        benchmark       = argspace.benchmark,
         mqttBroker      = argspace.mqttBroker,
         pathTopo        = argspace.pathTopo
     )
@@ -426,6 +441,13 @@ def _addParserArgs(parser):
         choices    = ['opentestbed', 'iotlab', 'wilab'],
         action     = 'store',
         help       = 'connect remote motes from a --testbed over OpenTestbed serial-MQTT bridge. uses --mqttBroker'
+    )
+    parser.add_argument('-b', '--benchmark',
+        dest       = 'benchmark',
+        default    = False,
+        choices    = ['building-automation', 'home-automation', 'industrial-monitoring'],
+        action     = 'store',
+        help       = 'trigger --benchmark scenario using OpenBenchmark cloud service. uses --mqttBroker. see benchmark.6tis.ch'
     )
     parser.add_argument('-mqtt', '--mqttBroker',
         dest       = 'mqttBroker',
