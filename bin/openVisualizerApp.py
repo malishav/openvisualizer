@@ -38,7 +38,7 @@ class OpenVisualizerApp(object):
     top-level functionality for several UI clients.
     '''
     
-    def __init__(self,confdir,datadir,logdir,simulatorMode,numMotes,trace,debug,usePageZero,simTopology,iotlabmotes, testbedmotes, pathTopo):
+    def __init__(self,confdir,datadir,logdir,simulatorMode,numMotes,trace,debug,usePageZero,simTopology,iotlabmotes,testbed,mqttBroker,pathTopo):
         
         # store params
         self.confdir              = confdir
@@ -50,7 +50,8 @@ class OpenVisualizerApp(object):
         self.debug                = debug
         self.usePageZero          = usePageZero
         self.iotlabmotes          = iotlabmotes
-        self.testbedmotes         = testbedmotes
+        self.testbed              = testbed
+        self.mqttBroker           = mqttBroker
         self.pathTopo             = pathTopo
 
         # local variables
@@ -79,9 +80,9 @@ class OpenVisualizerApp(object):
                 app.close()
                 os.kill(os.getpid(), signal.SIGTERM)
 
-        
         # create a moteProbe for each mote
         if self.simulatorMode:
+            self.testEnvironment = 'simulation'
             # in "simulator" mode, motes are emulated
             sys.path.append(os.path.join(self.datadir, 'sim_files'))
             import oos_openwsn
@@ -93,18 +94,21 @@ class OpenVisualizerApp(object):
                 self.simengine.indicateNewMote(moteHandler)
                 self.moteProbes  += [moteProbe.moteProbe(emulatedMote=moteHandler)]
         elif self.iotlabmotes:
+            self.testEnvironment = 'iotlab-tcp'
             # in "IoT-LAB" mode, motes are connected to TCP ports
             
             self.moteProbes       = [
                 moteProbe.moteProbe(iotlabmote=p) for p in self.iotlabmotes.split(',')
             ]
-        elif self.testbedmotes:
-            motesfinder = moteProbe.OpentestbedMoteFinder()
+        elif self.testbed:
+            self.testEnvironment = self.testbed
+            motesfinder = moteProbe.OpentestbedMoteFinder(testbed=self.testbed, mqttBroker=self.mqttBroker)
             self.moteProbes       = [
                 moteProbe.moteProbe(testbedmote=p) for p in motesfinder.get_opentestbed_motelist()
                 ]
             
         else:
+            self.testEnvironment = 'local'
             # in "hardware" mode, motes are connected to the serial port
 
             self.moteProbes       = [
@@ -336,14 +340,13 @@ def main(parser=None):
         argspace.numMotes = DEFAULT_MOTE_COUNT
 
     log.info('Initializing OpenVisualizerApp with options:\n\t{0}'.format(
-            '\n    '.join(['appdir      = {0}'.format(argspace.appdir),
-                           'sim         = {0}'.format(argspace.simulatorMode),
-                           'simCount    = {0}'.format(argspace.numMotes),
-                           'trace       = {0}'.format(argspace.trace),
-                           'debug       = {0}'.format(argspace.debug),
-                           'testbedmotes= {0}'.format(argspace.testbedmotes),
-                           
-                           'usePageZero = {0}'.format(argspace.usePageZero)],
+            '\n    '.join(['appdir         = {0}'.format(argspace.appdir),
+                           'sim            = {0}'.format(argspace.simulatorMode),
+                           'simCount       = {0}'.format(argspace.numMotes),
+                           'trace          = {0}'.format(argspace.trace),
+                           'debug          = {0}'.format(argspace.debug),
+                           'testbed        = {0}'.format(argspace.testbed),
+                           'usePageZero    = {0}'.format(argspace.usePageZero)],
             )))
     log.info('Using external dirs:\n\t{0}'.format(
             '\n    '.join(['conf     = {0}'.format(confdir),
@@ -363,7 +366,8 @@ def main(parser=None):
         usePageZero     = argspace.usePageZero,
         simTopology     = argspace.simTopology,
         iotlabmotes     = argspace.iotlabmotes,
-        testbedmotes    = argspace.testbedmotes,
+        testbed         = argspace.testbed,
+        mqttBroker      = argspace.mqttBroker,
         pathTopo        = argspace.pathTopo
     )
 
@@ -416,11 +420,18 @@ def _addParserArgs(parser):
         action     = 'store',
         help       = 'comma-separated list of IoT-LAB motes (e.g. "wsn430-9,wsn430-34,wsn430-3")'
     )
-    parser.add_argument('-tb', '--opentestbed',
-        dest       = 'testbedmotes',
+    parser.add_argument('-tb', '--testbed',
+        dest       = 'testbed',
         default    = False,
-        action     = 'store_true',
-        help       = 'connect motes from opentestbed'
+        choices    = ['opentestbed', 'iotlab', 'wilab'],
+        action     = 'store',
+        help       = 'connect remote motes from a --testbed over OpenTestbed serial-MQTT bridge. uses --mqttBroker'
+    )
+    parser.add_argument('-mqtt', '--mqttBroker',
+        dest       = 'mqttBroker',
+        default    = 'argus.paris.inria.fr',
+        action     = 'store',
+        help       = 'MQTT broker address, to interconnect with OpenTestbed-exposed motes and OpenBenchmark cloud service'
     )
     parser.add_argument('-i', '--pathTopo', 
         dest       = 'pathTopo',

@@ -33,8 +33,6 @@ from   openvisualizer.moteConnector.SerialTester import SerialTester
 
 #============================ defines =========================================
 
-OPENTESTBED_BROKER_ADDRESS          = "argus.paris.inria.fr"
-
 BAUDRATE_LOCAL_BOARD  = 115200
 BAUDRATE_IOTLAB       = 500000
 
@@ -105,7 +103,9 @@ class OpentestbedMoteFinder (object):
 
     OPENTESTBED_RESP_STATUS_TIMEOUT     = 10
 
-    def __init__(self):
+    def __init__(self, testbed, mqttBroker):
+        self.testbed = testbed
+        self.mqttBroker = mqttBroker
         self.opentestbed_motelist = set()
         
     def get_opentestbed_motelist(self):
@@ -114,7 +114,7 @@ class OpentestbedMoteFinder (object):
         mqtt_client                = mqtt.Client('FindMotes')
         mqtt_client.on_connect     = self._on_mqtt_connect
         mqtt_client.on_message     = self._on_mqtt_message
-        mqtt_client.connect(OPENTESTBED_BROKER_ADDRESS)
+        mqtt_client.connect(self.mqttBroker)
         mqtt_client.loop_start()
         
         # wait for a while to gather the response from otboxes
@@ -129,16 +129,16 @@ class OpentestbedMoteFinder (object):
 
     def _on_mqtt_connect(self, client, userdata, flags, rc):
         
-        print "connected to : {0}".format(OPENTESTBED_BROKER_ADDRESS)
+        print "connected to : {0}".format(self.mqttBroker)
         
-        client.subscribe('opentestbed/deviceType/box/deviceId/+/resp/status')
+        client.subscribe('{0}/deviceType/box/deviceId/+/resp/status'.format(self.testbed))
         
         payload_status = {
             'token':       123,
         }
         # publish the cmd message
         client.publish(
-            topic   = 'opentestbed/deviceType/box/deviceId/all/cmd/status',
+            topic   = '{0}/deviceType/box/deviceId/all/cmd/status'.format(self.testbed),
             payload = json.dumps(payload_status),
         )
 
@@ -158,7 +158,7 @@ class OpentestbedMoteFinder (object):
         for mote in payload_status['returnVal']['motes']:
             if 'EUI64' in mote:
                 self.opentestbed_motelist.add(
-                    (host, mote['EUI64'])
+                    (host, mote['EUI64'], self.testbed, self.mqttBroker)
                 )
 
 class moteProbe(threading.Thread):
@@ -220,8 +220,8 @@ class moteProbe(threading.Thread):
             self.iotlabmote         = iotlabmote
             self.portname           = 'IoT-LAB{0}'.format(iotlabmote)
         elif self.mode==self.MODE_TESTBED:
-            (self.testbed_host, self.testbedmote_eui64) = testbedmote
-            self.portname           = 'opentestbed_{0}_{1}'.format(self.testbed_host, self.testbedmote_eui64)
+            (self.testbed_host, self.testbedmote_eui64, self.testbed, self.mqttBroker) = testbedmote
+            self.portname           = 'testbed_{0}_{1}_{2}'.format(self.testbed, self.testbed_host, self.testbedmote_eui64)
         else:
             raise SystemError()
         
@@ -252,7 +252,7 @@ class moteProbe(threading.Thread):
             self.mqttclient                = mqtt.Client()
             self.mqttclient.on_connect     = self._on_mqtt_connect
             self.mqttclient.on_message     = self._on_mqtt_message
-            self.mqttclient.connect(OPENTESTBED_BROKER_ADDRESS)
+            self.mqttclient.connect(self.mqttBroker)
             self.mqttclient.loop_start()
         
         # initialize the parent class
@@ -416,7 +416,7 @@ class moteProbe(threading.Thread):
             payload_buffer['serialbytes'] = [ord(i) for i in hdlcData]
             # publish the cmd message
             self.mqttclient.publish(
-                topic   = 'opentestbed/deviceType/mote/deviceId/{0}/cmd/tomoteserialbytes'.format(self.testbedmote_eui64),
+                topic   = '{0}/deviceType/mote/deviceId/{1}/cmd/tomoteserialbytes'.format(self.testbed, self.testbedmote_eui64),
                 payload = json.dumps(payload_buffer),
             )
         else:
@@ -427,7 +427,7 @@ class moteProbe(threading.Thread):
     
     def _on_mqtt_connect(self, client, userdata, flags, rc):
         
-        client.subscribe('opentestbed/deviceType/mote/deviceId/{0}/notif/frommoteserialbytes'.format(self.testbedmote_eui64))
+        client.subscribe('{0}/deviceType/mote/deviceId/{1}/notif/frommoteserialbytes'.format(self.testbed, self.testbedmote_eui64))
         
     def _on_mqtt_message(self, client, userdata, message):
     
