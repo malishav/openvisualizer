@@ -253,7 +253,10 @@ class OpenBenchmarkAgent(eventBusClient.eventBusClient):
         # format nodes to the format expected by OpenBenchmark
         nodes = {}
         for k,v in self.motes.iteritems():
-            nodes[k] = v['host']
+            if nodes.has_key(v['host']):
+                nodes[v['host']] += [k]
+            else:
+                nodes[v['host']] = [k]
 
         payload = {
             'api_version': self.OPENBENCHMARK_API_VERSION,
