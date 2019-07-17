@@ -44,7 +44,7 @@ networkEventLogger.setLevel(logging.INFO)
 
 class OpenBenchmarkAgent(eventBusClient.eventBusClient):
 
-    OPENBENCHMARK_API_VERSION            = '0.0.1'
+    OPENBENCHMARK_API_VERSION            = '1.0.0'
 
     # MQTT topics
     OPENBENCHMARK_STARTBENCHMARK_REQUEST_TOPIC = 'openbenchmark/command/startBenchmark'
