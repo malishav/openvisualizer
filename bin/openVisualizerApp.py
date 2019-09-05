@@ -247,7 +247,8 @@ class OpenVisualizerApp(object):
                 firmware='openwsn-{0}'.format(subprocess.check_output(["git", "describe", "--tags"]).strip()),
                 testbed=self.testEnvironment,
                 motes=motes,
-                scenario=self.benchmark
+                scenario=self.benchmark,
+                terminateCallback=self.close
             )
         
         # start tracing threads

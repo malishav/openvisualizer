@@ -13,12 +13,14 @@ import json
 import re
 import time
 import os
+import signal
 import binascii
 import paho.mqtt.client as mqtt
 from time import gmtime, strftime
 
 import threading
 import traceback
+import sched
 
 log = logging.getLogger('openBenchmarkAgent')
 log.setLevel(logging.INFO)
@@ -54,7 +56,7 @@ class OpenBenchmarkAgent(eventBusClient.eventBusClient):
     OPENBENCHMARK_MAX_RETRIES            = 3
     OPENBENCHMARK_PREFIX_CMD_HANDLER_NAME = '_mqtt_handler_'
 
-    def __init__(self, coapServer, mqttBroker, firmware, testbed, motes, scenario):
+    def __init__(self, coapServer, mqttBroker, firmware, testbed, motes, scenario, terminateCallback):
         '''
         :param mqttBroker:
             Address of the MQTT broker where to connect with OpenBenchmark
@@ -79,6 +81,7 @@ class OpenBenchmarkAgent(eventBusClient.eventBusClient):
         self.testbed = testbed
         self.motes = motes
         self.scenario = scenario
+        self.terminateCallback = terminateCallback
 
         # primitive for mutual exclusion
         self.mqttConnectedEvent = threading.Event()
@@ -411,6 +414,15 @@ class OpenBenchmarkAgent(eventBusClient.eventBusClient):
 
     def _mqtt_handler_echo(self, payload):
         returnVal = {}
+        return (True, returnVal)
+
+    def _mqtt_handler_endExperiment(self, payload):
+        returnVal = {}
+        log.warning("endExperiment command received. Terminating the process.")
+        self.terminateCallback()
+        os.kill(os.getpid(), signal.SIGTERM)
+
+        # we never actually end up here
         return (True, returnVal)
 
     def _mqtt_handler_sendPacket(self, payload):
