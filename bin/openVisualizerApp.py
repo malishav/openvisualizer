@@ -133,6 +133,7 @@ class OpenVisualizerApp(object):
                         ['scons', 'board={0}'.format(board_names[self.testbed]), 'toolchain=armgcc', 'apps=cbenchmark', 'bootload=testbed', 'oos_openwsn'],
                         cwd=os.path.join(self.datadir, '..', '..', '..', 'openwsn-fw')
                     )
+                    time.sleep(30)
                 except:
                     raise RuntimeError('Cannot flash firmware on motes in the testbed.')
 
