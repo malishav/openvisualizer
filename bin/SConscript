@@ -61,6 +61,9 @@ def uiRunner(target, source, env):
 
     if env['TESTBED']:
         argList.append('--testbed={0}'.format(env['TESTBED']))
+
+    if env['BOOTLOADTESTBED']:
+        argList.append('--bootloadTestbed')
         
     if env['MQTT_BROKER_ADDRESS']:
         argList.append('--mqtt-broker-address='

@@ -167,6 +167,12 @@ AddOption('--testbed',
     action    = 'store')
 runnerEnv['TESTBED'] = GetOption('testbed')
 
+AddOption('--bootloadTestbed',
+    dest      = 'bootloadTestbed',
+    default   = False,
+    action    = 'store_true')
+runnerEnv['BOOTLOADTESTBED'] = GetOption('bootloadTestbed')
+
 AddOption('--benchmark',
     dest      = 'benchmark',
     default   = False,

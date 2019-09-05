@@ -45,7 +45,7 @@ class OpenVisualizerApp(object):
     top-level functionality for several UI clients.
     '''
     
-    def __init__(self,confdir,datadir,logdir,simulatorMode,numMotes,trace,debug,usePageZero,simTopology,iotlabmotes,testbed,benchmark,pathTopo,mqtt_broker_address,opentun_null):
+    def __init__(self,confdir,datadir,logdir,simulatorMode,numMotes,trace,debug,usePageZero,simTopology,iotlabmotes,testbed,benchmark,pathTopo,mqtt_broker_address,opentun_null,bootloadTestbed):
         
         # store params
         self.confdir              = confdir
@@ -58,6 +58,7 @@ class OpenVisualizerApp(object):
         self.usePageZero          = usePageZero
         self.iotlabmotes          = iotlabmotes
         self.testbed              = testbed
+        self.bootloadTestbed      = bootloadTestbed
         self.benchmark            = benchmark
         self.pathTopo             = pathTopo
         self.mqtt_broker_address  = mqtt_broker_address
@@ -118,6 +119,25 @@ class OpenVisualizerApp(object):
             ]
         elif self.testbed:
             self.testEnvironment = self.testbed
+
+            # trigger firmware bootload on hte testbed
+            if self.bootloadTestbed:
+                print "Compiling firmware and flashing motes in testbed={0}".format(self.testbed)
+                try:
+                    board_names = {
+                        "iotlab": "iot-lab_A8-M3",
+                        "wilab": "remote",
+                        "opentestbed": "openmote-b-24ghz"
+                    }
+                    subprocess.call(
+                        ['scons', 'board={0}'.format(board_names[self.testbed]), 'toolchain=armgcc', 'apps=cbenchmark', 'bootload=testbed', 'oos_openwsn'],
+                        cwd=os.path.join(self.datadir, '..', '..', '..', 'openwsn-fw')
+                    )
+                except:
+                    raise RuntimeError('Cannot flash firmware on motes in the testbed.')
+
+            print "Discovering testbed motes..."
+
             motesfinder = moteProbe.OpentestbedMoteFinder(testbed=self.testbed, mqtt_broker_address=self.mqtt_broker_address)
             self.moteProbes       = [
                 moteProbe.moteProbe(mqtt_broker_address, testbedmote=p)
@@ -395,6 +415,7 @@ def main(parser=None):
                            'trace          = {0}'.format(argspace.trace),
                            'debug          = {0}'.format(argspace.debug),
                            'testbed        = {0}'.format(argspace.testbed),
+                           'bootloadTestbed = {0}'.format(argspace.bootloadTestbed),
                            'benchmark      = {0}'.format(argspace.benchmark),
                            'mqttBroker     = {0}'.format(argspace.mqtt_broker_address),
                            'usePageZero    = {0}'.format(argspace.usePageZero)],
@@ -421,7 +442,8 @@ def main(parser=None):
         pathTopo            = argspace.pathTopo,
         benchmark           = argspace.benchmark,
         mqtt_broker_address = argspace.mqtt_broker_address,
-        opentun_null        = argspace.opentun_null
+        opentun_null        = argspace.opentun_null,
+        bootloadTestbed     = argspace.bootloadTestbed,
     )
 
 def _addParserArgs(parser):
@@ -479,6 +501,12 @@ def _addParserArgs(parser):
         choices    = ['opentestbed', 'iotlab', 'wilab'],
         action     = 'store',
         help       = 'connect remote motes from a --testbed over OpenTestbed serial-MQTT bridge.'
+    )
+    parser.add_argument('--bootloadTestbed',
+        dest       = 'bootloadTestbed',
+        default    = False,
+        action     = 'store_true',
+        help       = 'Trigger firmware bootloading on the --testbed before starting.'
     )
     parser.add_argument('-b', '--benchmark',
         dest       = 'benchmark',
