@@ -1,5 +1,6 @@
 import argparse
 import subprocess
+import os
 
 parser = argparse.ArgumentParser()
 
@@ -31,4 +32,9 @@ for i in range(args.numRuns):
     subprocess.call(
              ['scons', 'runweb', '--port=8082', '--testbed={0}'.format(args.testbed), '--benchmark={0}'.format(args.scenario), '--bootloadTestbed', '--opentun-null'],
 #            ['scons', 'runweb', '--port=8082', '--sim', '--simCount=4', '--simTopology=linear', '--benchmark={0}'.format(args.scenario), '--opentun-null'],
+            )
+    # rename OV log to match the run number
+    subprocess.call(
+            ['mv', 'openVisualizer.log', 'openVisualizer_run_{0}.log'.format(i)],
+            cwd=os.path.join(os.path.dirname(__file__), 'build', 'runui')
             )
