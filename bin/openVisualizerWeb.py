@@ -29,6 +29,7 @@ except ImportError:
 import json
 import bottle
 import re
+import random
 import threading
 import signal
 import functools
@@ -80,7 +81,7 @@ class OpenVisualizerWeb(eventBusClient.eventBusClient,Cmd):
         #used for remote motes :
 
         self.roverMotes = {}
-        self.client = coap.coap(udpPort=9000)
+        self.client = coap.coap(udpPort=random.randint(49152, 65535))
         self.client.respTimeout = 2
         self.client.ackTimeout = 2
         self.client.maxRetransmit = 1
