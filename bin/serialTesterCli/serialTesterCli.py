@@ -124,16 +124,38 @@ def main():
     if len(sys.argv)>1:
         serialportname = sys.argv[1]
     else:
-        test_mode = raw_input('Serialport or OpenTestbed? (0: serialport, 1: opentestbed)')
+        test_mode = raw_input('Serialport or Testbed? (0: serialport, 1: testbed)')
         if test_mode == '0':
             serialportname = raw_input('Serial port to connect to (e.g. COM3, /dev/ttyUSB1): ')
             serialport = (serialportname, moteProbe.BAUDRATE_LOCAL_BOARD)
             # create a moteProbe from serial port
             moteProbe_handler = moteProbe.moteProbe(mqtt_broker_address=mqtt_broker_address, serialport=serialport)
         elif test_mode == '1':
+            testbed_key = raw_input('Which testbed? (0: opentestbed, 1: iotlab, 2: wilab)')
+            testbedDict = {
+                '0' :'opentestbed',
+                '1' : 'iotlab',
+                '2' : 'wilab'
+                           }
+
+            motesfinder = moteProbe.OpentestbedMoteFinder(testbed=testbedDict[testbed_key],
+                                                          mqtt_broker_address=mqtt_broker_address)
+            print "Discovering motes..."
+            availableMotes =  motesfinder.get_opentestbed_motelist()
+            print "Available motes:"
+            for mote in availableMotes:
+                print mote
             testbedmote = raw_input('testbed mote to connect to (e.g. 00-12-4b-00-14-b5-b6-0b): ')
             # create a moteProbe from opentestbed
-            moteProbe_handler = moteProbe.moteProbe(mqtt_broker_address=mqtt_broker_address,testbedmote_eui64=testbedmote)
+            found = False
+            for mote in availableMotes:
+                if testbedmote == mote[1]:
+                    moteProbe_handler = moteProbe.moteProbe(mqtt_broker_address=mqtt_broker_address,testbedmote=mote)
+                    found = True
+                    break
+            if not found:
+                raw_input("wrong input! Press Enter to quit..")
+                return
         else:
             raw_input("wrong input! Press Enter to quit..")
             return
