@@ -236,6 +236,8 @@ class OpenBenchmarkAgent(eventBusClient.eventBusClient):
         buf += [int(packetsInBurst)]
         buf += packetToken
         buf += [packetPayloadLen]
+
+        assert len(buf) == 16
         return buf
 
     # ======================== private =========================================
