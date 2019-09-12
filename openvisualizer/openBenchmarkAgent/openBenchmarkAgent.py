@@ -779,7 +779,7 @@ class PerformanceUpdatePoller(eventBusClient.eventBusClient, threading.Thread):
                     topic = 'openbenchmark/experimentId/{0}/nodeId/{1}/performanceData'.format(self.experimentId, source)
                     payload = {
                         'event'     : self.EV_RADIO_DUTY_CYCLE_MEASUREMENT[0],
-                        'timestamp' : int(timestamp,16) if timestamp else 0,
+                        'timestamp' : int(timestamp,16),
                         'source'    : source,
                         'dutyCycle' : dutyCycle,
                     }
