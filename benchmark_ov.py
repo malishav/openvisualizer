@@ -51,5 +51,5 @@ for i in range(args.numRuns):
     # rename OV log to match the run number
     subprocess.call(
             ['mv', 'openVisualizer.log', 'openVisualizer_run_{0}.log'.format(i)],
-            cwd=os.path.join(os.path.dirname(__file__), 'build', 'runui')
+            cwd='/tmp'
             )
