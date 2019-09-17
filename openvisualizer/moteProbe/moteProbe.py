@@ -103,9 +103,10 @@ class OpentestbedMoteFinder (object):
 
     OPENTESTBED_RESP_STATUS_TIMEOUT     = 10
 
-    def __init__(self, testbed, mqtt_broker_address):
+    def __init__(self, testbed, mqtt_broker_address, ignore_motes=''):
         self.testbed = testbed
         self.mqtt_broker_address = mqtt_broker_address
+        self.ignore_motes = ignore_motes
         self.opentestbed_motelist = set()
         
     def get_opentestbed_motelist(self):
@@ -156,7 +157,7 @@ class OpentestbedMoteFinder (object):
             host = ''
         
         for mote in payload_status['returnVal']['motes']:
-            if 'EUI64' in mote:
+            if 'EUI64' in mote and mote['EUI64'] not in self.ignore_motes:
                 self.opentestbed_motelist.add(
                     (host, mote['EUI64'], self.testbed, self.mqtt_broker_address)
                 )

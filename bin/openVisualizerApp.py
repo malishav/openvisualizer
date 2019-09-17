@@ -119,7 +119,7 @@ class OpenVisualizerApp(object):
             ]
         elif self.testbed:
             self.testEnvironment = self.testbed
-
+            ignoreMotes = ''
             # trigger firmware bootload on hte testbed
             if self.bootloadTestbed:
                 print "Compiling firmware and flashing motes in testbed={0}".format(self.testbed)
@@ -134,12 +134,22 @@ class OpenVisualizerApp(object):
                         cwd=os.path.join(self.datadir, '..', '..', '..', 'openwsn-fw')
                     )
                     time.sleep(30)
+
+                    if self.testbed=="opentestbed":
+                        # disable nodes that should not participate in the experiment, hard-coded EUI64 addresses for now
+                        ignoreMotes= "00-12-4b-00-14-b5-b5-fb,00-12-4b-00-14-b5-b5-e5,00-12-4b-00-14-b5-b5-ed,00-12-4b-00-14-b5-b5-78,00-12-4b-00-14-b5-b6-49,00-12-4b-00-14-b5-b5-e9,00-12-4b-00-14-b5-b6-1f,00-12-4b-00-14-b5-b6-24,00-12-4b-00-14-b5-b6-35,00-12-4b-00-14-b5-b5-d5,00-12-4b-00-14-b5-b5-af,00-12-4b-00-14-b5-b5-76,00-12-4b-00-14-b5-b5-97,00-12-4b-00-14-b5-b5-7b,00-12-4b-00-14-b5-b5-c4,00-12-4b-00-14-b5-b6-2b,00-12-4b-00-14-b5-b5-9a,00-12-4b-00-14-b5-b5-db,00-12-4b-00-14-b5-b5-e4,00-12-4b-00-14-b5-b5-45,00-12-4b-00-14-b5-b4-d1,00-12-4b-00-14-b5-b5-79,00-12-4b-00-14-b5-b6-28,00-12-4b-00-14-b5-b5-4f,00-12-4b-00-14-b5-b5-58,00-12-4b-00-14-b5-b5-e7,00-12-4b-00-14-b5-b5-5b,00-12-4b-00-14-b5-b5-d8,00-12-4b-00-14-b5-b5-d0,00-12-4b-00-14-b5-b5-d1,00-12-4b-00-14-b5-b5-f3,00-12-4b-00-14-b5-b5-95,00-12-4b-00-14-b5-b6-29,00-12-4b-00-14-b5-b5-93,00-12-4b-00-14-b5-b4-98,00-12-4b-00-14-b5-b5-63,00-12-4b-00-14-b5-b5-88,00-12-4b-00-14-b5-b5-bf,00-12-4b-00-14-b5-b5-a3,00-12-4b-00-14-b5-b6-38,00-12-4b-00-14-b5-b5-8a,00-12-4b-00-14-b5-b5-7d,00-12-4b-00-14-b5-b5-fa,00-12-4b-00-14-b5-b5-d2,00-12-4b-00-14-b5-b6-30,00-12-4b-00-14-b5-b5-9b"
+                        subprocess.call(
+                            ['scons', 'board={0}'.format(board_names[self.testbed]), 'toolchain=armgcc',
+                            'bootload={0}'.format(ignoreMotes), 'bsp_leds'],
+                            cwd=os.path.join(self.datadir, '..', '..', '..', 'openwsn-fw')
+                        )
+                        time.sleep(30)
                 except:
                     raise RuntimeError('Cannot flash firmware on motes in the testbed.')
 
             print "Discovering testbed motes..."
 
-            motesfinder = moteProbe.OpentestbedMoteFinder(testbed=self.testbed, mqtt_broker_address=self.mqtt_broker_address)
+            motesfinder = moteProbe.OpentestbedMoteFinder(testbed=self.testbed, mqtt_broker_address=self.mqtt_broker_address, ignore_motes=ignoreMotes)
             self.moteProbes       = [
                 moteProbe.moteProbe(mqtt_broker_address, testbedmote=p)
                 for p in motesfinder.get_opentestbed_motelist()
